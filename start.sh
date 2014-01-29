@@ -1,4 +1,4 @@
-#!/bash/sh
+#!/bin/sh
 DIR="logs"
 START=`date '+%Y_%m_%d'`
 LOG_FILE="$DIR/log_$START.log"
