@@ -9,10 +9,10 @@ var twit = new twitter(config.twitter_auth);
 var me;
 var my_friends = [];
 var checked_tweets = [];
-var retweeted = ['229624836564058112'];
-var rt_threshold = 25;
+var retweeted = [];
+var rt_threshold = config.app.retweet_threshold;;
 var tweet_queue = PriorityQueue();
-var interval_timeout = 87000;
+var interval_timeout = config.app.tweet_interval;
 //var interval_timeout = 12000;
 var col_tweets;
 var mongo_client;
@@ -22,49 +22,59 @@ var start_retweeting = function(){
 	console.log('beginning stream');
 	
 	twit.stream('statuses/filter', {'follow': my_friends}, function(stream) {
-	  stream.on('data', function (data) {
-		console.log('****	Stream Data received	****');
-//	    console.log(data);
+		stream.on('data', function (data) {
+			console.log('****	Stream Data received	****');
+	//	    console.log(data);
 
-		var tweet = data;
-		
-		if ('retweeted_status' in tweet){
-			var focus_tweet = tweet.retweeted_status;
-			console.log("	@"+focus_tweet.user.screen_name + ": ");
-			console.log("	" + focus_tweet.text);
-			if (focus_tweet.retweeted || retweeted.indexOf(focus_tweet.id_str) != -1){
-				console.log('	already retweeted');
-			}else{
-				console.log('	have not retweeted yet...');
-				if (focus_tweet.retweet_count > rt_threshold){
-					console.log('	retweets high enough: ' + focus_tweet.retweet_count);
-					var tweet_date = new Date(focus_tweet.created_at);
-					console.log("	From time: " + focus_tweet.created_at);
-					
-					if (tweet_date > start_date){
-						console.log("	After starting");
-						date_val = ((new Date()) - tweet_date) / 600000;
-						if (date_val < 1) date_val = 1;
-						var rank = parseInt(focus_tweet.retweet_count / date_val, 10);
-						if (rank > config.app.ratio_limit){
-							console.log("	Adding to queue: "+ focus_tweet.id_str +"	|	rank: " + rank + "	|	(" + focus_tweet.retweet_count + " / " + date_val + ")");
-							tweet_queue.push(focus_tweet.id_str, rank);
-						}else{
-							console.log("	Skipping, not enough rank");
-						}
-					}else{
-						console.log("	Before starting, skipping...");
-					}
-					
+			var tweet = data;
+			
+			if ('retweeted_status' in tweet){
+				var focus_tweet = tweet.retweeted_status;
+				console.log("	@"+focus_tweet.user.screen_name + ": ");
+				console.log("	" + focus_tweet.text);
+				if (focus_tweet.retweeted || retweeted.indexOf(focus_tweet.id_str) != -1){
+					console.log('	already retweeted');
 				}else{
-					console.log('	not high enough retweet count: ' + focus_tweet.retweet_count);
-				}
-			}				
-	
-		}else{
-			console.log('	Has not been retweeted');
-		}		
-	  });
+					console.log('	have not retweeted yet...');
+					if (focus_tweet.retweet_count > rt_threshold){
+						console.log('	retweets high enough: ' + focus_tweet.retweet_count);
+						var tweet_date = new Date(focus_tweet.created_at);
+						console.log("	From time: " + focus_tweet.created_at);
+						
+						if (tweet_date > start_date){
+							console.log("	After starting");
+							date_val = ((new Date()) - tweet_date) / 600000;
+							if (date_val < 1) date_val = 1;
+							var rank = parseInt(focus_tweet.retweet_count / date_val, 10);
+							if (rank > config.app.ratio_limit){
+								console.log("	Adding to queue: "+ focus_tweet.id_str +"	|	rank: " + rank + "	|	(" + focus_tweet.retweet_count + " / " + date_val + ")");
+								tweet_queue.push(focus_tweet.id_str, rank);
+							}else{
+								console.log("	Skipping, not enough rank");
+							}
+						}else{
+							console.log("	Before starting, skipping...");
+						}
+						
+					}else{
+						console.log('	not high enough retweet count: ' + focus_tweet.retweet_count);
+					}
+				}				
+		
+			}else{
+				console.log('	Has not been retweeted');
+			}		
+		});
+
+		stream.on('end', function(resp){
+			console.log("END");
+			start_retweeting();
+		});
+		stream.on('destroy', function(resp){
+			console.log("DESTROY");
+			start_retweeting();
+		});
+
 	});
 	
 	var tweet_function = function(){

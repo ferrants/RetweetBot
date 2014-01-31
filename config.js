@@ -14,8 +14,10 @@ this.mongo = {
 //	App Info
 this.app = {
 	friend: false,	// Whether or not to follow when running follow.js
-	term: "olympics",	// The Term to use when deciding who to follow
+	term: "olympics",	// The Term to use when deciding who to follow if doing auto-follow with rollow.js
 	tweet: false,	// Whether or not to tweet when running retweet.js
 	start: "Fri Aug 5  00:00:00 +0000 2012",	//	Date before which nothing should be tweeted
-	ratio_limit: 1	//	If tweeting too much stupid stuff, raise this.
+	ratio_limit: 1,	//	If tweeting too much stupid stuff, raise this. Ratio of retweets to how old it is
+	tweet_interval: 300000, // checks to see if it should tweet every this many miliseconds
+	retweet_threshold: 25 // how many retweets before it's considered
 }
